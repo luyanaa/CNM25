@@ -1,0 +1,109 @@
+# CNM25 KLayout LVS deck — ported from apdk_cnm25 glade/verification/cnm25lvs.py
+# usage:
+#   klayout -b -z -r cnm25.lvs -rd input=foo.gds -rd top=CELL \
+#       -rd schematic=ref.spice [-rd report=foo.lvsdb] [-rd target=extracted.cir]
+# If $schematic is set, netlist compare is performed; otherwise only extraction.
+
+top = (defined?($topcell) && $topcell && $topcell != "") ? $topcell : $top
+source($input, top)
+if defined?($schematic) && $schematic && $schematic != ""
+  schematic(File.expand_path($schematic))
+end
+report_lvs($report || ($input.sub(/\.\w+$/, "") + ".lvsdb"))
+target_netlist($target, write_spice(true), "Extracted by CNM25 LVS") if $target
+
+nwell  = input(1, 0)
+active = input(2, 0)
+poly0  = input(3, 0)
+poly1  = input(4, 0)
+nplus  = input(5, 0)
+cont   = input(6, 0)
+metal1 = input(7, 0)
+metal2 = input(9, 0)
+via12  = input(10, 0)
+pwell_l = input(26, 0) rescue nil
+
+# text layers
+poly1_pin  = labels(20, 0)
+metal1_pin = labels(21, 0)
+metal2_pin = labels(22, 0)
+poly1_net  = labels(23, 0)
+metal1_net = labels(24, 0)
+metal2_net = labels(25, 0)
+poly0_txt  = labels(3, 0)
+
+# ---- derived layers (identical to the Glade deck) ----
+gate  = poly1 & active
+ngate = gate & nplus
+pgate = gate - ngate
+cpoly = poly1 & poly0
+diff  = active - gate
+ndiff = diff & nplus
+pdiff = diff - nplus
+ntap  = ndiff & nwell
+ptap  = pwell_l ? (pdiff & pwell_l) : (pdiff - nwell)
+# bulk: p-substrate drawn as PWELL (26/0); ptap regions also connect to it.
+# PWELL geometry is also needed at device level so the mos4 bulk terminal
+# layer contains the gate region.
+pwell = pwell_l ? (pwell_l + ptap) : ptap
+
+# ---- connectivity (mirror of geomConnect) ----
+connect(ptap, pdiff)
+connect(ntap, nwell)
+connect(ntap, ndiff)
+connect(pwell, ptap)
+connect(pwell, pdiff - ntap)
+connect(cont, ndiff)
+connect(cont, pdiff)
+connect(cont, poly1)
+connect(cont, poly0)
+connect(cont, metal1)
+connect(via12, metal1)
+connect(via12, metal2)
+
+# attach labels to drawing layers
+connect(poly1, poly1_pin)
+connect(poly1, poly1_net)
+connect(metal1, metal1_pin)
+connect(metal1, metal1_net)
+connect(metal2, metal2_pin)
+connect(metal2, metal2_net)
+connect(poly0, poly0_txt)
+
+# implicit bulk net name (substrate). Can be overridden with -rd subnet=...
+# ptap regions carry the substrate net; the global name applies when no
+# explicit tap connects.
+connect_global(pwell, (defined?($subnet) && $subnet) ? $subnet : "VSS")
+connect_implicit((defined?($subnet) && $subnet) ? $subnet : "VSS")
+
+# ---- device extraction ----
+# extractMOS("cnm25modn", ngate, poly1, ndiff, pwell)
+extract_devices(mos4("cnm25modn"), {
+  "SD" => ndiff, "G" => ngate, "tG" => poly1, "W" => pwell })
+extract_devices(mos4("cnm25modp"), {
+  "SD" => pdiff, "G" => pgate, "tG" => poly1, "W" => nwell })
+# PiP capacitor: T = poly1 plate (over cpoly), B = poly0 plate.
+# cj = 4.227e-4 F/m^2 = 4.227e-16 F/um^2 (typical, 'common' section)
+extract_devices(capacitor("cnm25cpoly", 4.227e-16), {
+  "P1" => cpoly, "P2" => poly0 - cpoly,
+  "tA" => poly1, "tB" => poly0 })
+
+# pin/net naming priority: pin texts first
+netlist.simplify
+
+if defined?($schematic) && $schematic && $schematic != ""
+  schematic.simplify
+  align
+  tolerance("cnm25modn", "W", :relative => 0.01)
+  tolerance("cnm25modn", "L", :relative => 0.01)
+  tolerance("cnm25modp", "W", :relative => 0.01)
+  tolerance("cnm25modp", "L", :relative => 0.01)
+  same_device_classes("cnm25modn", "NMOS")
+  same_device_classes("cnm25modp", "PMOS")
+  same_device_classes("cnm25modn", "nfet")
+  same_device_classes("cnm25modp", "pfet")
+  ok = compare
+  puts ok ? "LVS MATCH: #{top}" : "LVS MISMATCH: #{top}"
+else
+  puts "Extraction done (no schematic compare)"
+end

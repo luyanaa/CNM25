@@ -1,0 +1,133 @@
+# CNM25 KLayout DRC deck — ported from apdk_cnm25 glade/verification/cnm25drc.py
+# Units: micrometers.  Grid: 0.25 um.
+# usage:
+#   klayout -b -z -r cnm25.drc -rd input=foo.gds -rd report=foo_drc.lyrdb [-rd top=CELL]
+
+top = (defined?($topcell) && $topcell && $topcell != "") ? $topcell : $top
+source($input, top)
+report("CNM25 DRC", $report || ($input.sub(/\.\w+$/, "") + "_drc.lyrdb"))
+
+nwell  = input(1, 0)
+active = input(2, 0)    # GASAD
+poly0  = input(3, 0)
+poly1  = input(4, 0)
+nplus  = input(5, 0)
+cont   = input(6, 0)    # WINDOW
+metal1 = input(7, 0)
+pad    = input(8, 0)    # CAPS
+metal2 = input(9, 0)
+via12  = input(10, 0)
+
+# ---- derived layers (same as the Glade deck) ----
+gate   = poly1 & active
+ngate  = gate & nplus
+pgate  = gate - ngate
+cpoly  = poly1 & poly0
+diff   = active - gate
+ndiff  = diff & nplus
+pdiff  = diff - nplus
+polygatecont = poly1 & cont
+polycapcont  = poly0 & cont
+activecont   = active & cont
+allcon       = polygatecont + polycapcont + activecont
+badcon       = allcon - metal1
+metal1via    = metal1 & via12
+badvia       = metal1via - metal2
+p1con        = cont & poly1           # contact on poly1
+actcon       = cont & active          # contact on active
+p0con        = cont & poly0           # contact on poly0
+
+# ---- 0.x off-grid ----
+nwell.ongrid(0.25.um).output("0.0a", "NTUB grid not multiple of 0.25um")
+active.ongrid(0.25.um).output("0.0b", "GASAD grid not multiple of 0.25um")
+poly0.ongrid(0.25.um).output("0.0c", "POLY0 grid not multiple of 0.25um")
+poly1.ongrid(0.25.um).output("0.0d", "POLY1 grid not multiple of 0.25um")
+nplus.ongrid(0.25.um).output("0.0e", "NPLUS grid not multiple of 0.25um")
+cont.ongrid(0.25.um).output("0.0f", "WINDOW grid not multiple of 0.25um")
+metal1.ongrid(0.25.um).output("0.0g", "METAL grid not multiple of 0.25um")
+via12.ongrid(0.25.um).output("0.0h", "VIA grid not multiple of 0.25um")
+metal2.ongrid(0.25.um).output("0.0i", "METAL2 grid not multiple of 0.25um")
+pad.ongrid(0.25.um).output("0.0j", "CAPS grid not multiple of 0.25um")
+
+# ---- 1.x N-well ----
+nwell.width(8.0.um).output("1.1", "N-well width < 8um")
+nwell.space(8.0.um).output("1.2", "N-well spacing < 8um")
+nwell.notch(8.0.um).output("1.2n", "N-well notch < 8um")
+
+# ---- 2.x GASAD (active) ----
+active.width(2.0.um).output("2.1", "GASAD width < 2um")
+active.space(4.0.um).output("2.2", "GASAD spacing < 4um")
+active.notch(4.0.um).output("2.2n", "GASAD notch < 4um")
+nwell.enclosing(pdiff, 5.0.um).output("2.3", "N-well enclosure of P-plus active < 5um")
+# Glade: geomSpace(nwell, ndiff, 5) = space between separate shapes -> separation
+ndiff.separation(nwell, 5.0.um).output("2.4", "N-well spacing to N-plus active < 5um")
+
+# ---- 3.x POLY0 ----
+poly0.width(2.5.um).output("3.1", "Poly0 width < 2.5um")
+poly0.space(6.0.um).output("3.2", "Poly0 spacing < 6um")
+poly0.notch(6.0.um).output("3.2n", "Poly0 notch < 6um")
+poly0.separation(active, 6.0.um).output("3.3", "Poly0 spacing to GASAD < 6um")
+
+# ---- 4.x POLY1 ----
+gate.width(3.0.um).output("4.1a", "Poly1 width inside GASAD < 3um")
+(poly1 - gate).width(2.5.um).output("4.1b", "Poly1 width outside GASAD < 2.5um")
+poly1.space(3.0.um).output("4.2", "Poly1 spacing < 3um")
+poly1.notch(3.0.um).output("4.2n", "Poly1 notch < 3um")
+# GASAD extension of POLY1 (source/drain overhang >= 3):
+# gate-boundary edges inside poly1 (the channel edges) extended beyond poly1
+(active.edges & poly1.edges & gate.edges).extended_out(3.0.um).not(poly1).output(
+  "4.3", "GASAD extension of Poly1 < 3um")
+# POLY1 extension of GASAD (end cap >= 2.5):
+# gate-boundary edges inside active extended beyond active
+(poly1.edges & active.edges & gate.edges).extended_out(2.5.um).not(active).output(
+  "4.4", "Poly1 extension of GASAD < 2.5um")
+# field poly1 to active spacing 1.25 — only non-abutting poly1 edges
+poly1.not(active).not_interacting(active).separation(active, 1.25.um).output(
+  "4.5", "Poly1 spacing to GASAD < 1.25um")
+poly0.enclosing(poly1, 3.0.um).output("4.6", "Poly0 enclosure of Poly1 < 3um")
+
+# ---- 5.x NPLUS ----
+nplus.enclosing(active, 2.5.um).output("5.1", "N-plus enclosure of GASAD < 2.5um")
+nplus.separation(pdiff, 2.5.um).output("5.2", "N-plus spacing to P-plus active < 2.5um")
+nplus.separation(pgate, 2.0.um).output("5.3", "N-plus spacing to Poly1 inside P-plus active < 2um")
+nplus.enclosing(ngate, 1.5.um).output("5.4", "N-plus extension of Poly1 inside N-plus active < 1.5um")
+nplus.width(2.5.um).output("5.5", "N-plus width < 2.5um")
+nplus.space(2.5.um).output("5.6", "N-plus spacing < 2.5um")
+nplus.notch(2.5.um).output("5.6n", "N-plus notch < 2.5um")
+
+# ---- 6.x WINDOW (contact) ----
+badcon.output("6.0", "Contact without Metal1")
+cont.width(2.5.um, square).output("6.1", "Contact size not equal to 2.5um x 2.5um")
+cont.space(3.0.um).output("6.2", "Contact spacing < 3um")
+cont.notch(3.0.um).output("6.2n", "Contact notch < 3um")
+active.enclosing(actcon, 1.0.um).output("6.3", "GASAD enclosure of Contact < 1um")
+poly1.enclosing(p1con, 1.25.um).output("6.4", "Poly1 enclosure of Contact < 1.25um")
+polygatecont.separation(active, 2.5.um).output("6.5", "Poly1 Contact spacing to GASAD < 2.5um")
+actcon.separation(gate, 2.0.um).output("6.6", "Contact spacing to Poly1 inside GASAD < 2um")
+# 6.7 / 6.8: not implemented in the original deck either
+poly0.enclosing(p0con, 4.0.um).output("6.9", "Poly0 enclosure of Contact < 4um")
+cont.separation(cpoly, 4.0.um).output("6.10", "Contact spacing to Poly1 & Poly0 < 4um")
+
+# ---- 7.x METAL ----
+metal1.width(2.5.um).output("7.1", "Metal1 width < 2.5um")
+metal1.space(3.0.um).output("7.2", "Metal1 spacing < 3um")
+metal1.notch(3.0.um).output("7.2n", "Metal1 notch < 3um")
+metal1.enclosing(cont, 1.25.um).output("7.3", "Metal1 enclosure of Contact < 1.25um")
+
+# ---- 8.x VIA ----
+badvia.output("8.0", "Via without Metal2")
+via12.width(3.0.um, square).output("8.1", "Via size not equal to 3um x 3um")
+via12.space(3.5.um).output("8.2", "Via spacing < 3.5um")
+via12.notch(3.5.um).output("8.2n", "Via notch < 3.5um")
+metal1.enclosing(via12, 1.25.um).output("8.3", "Metal1 enclosure of Via < 1.25um")
+via12.separation(cont, 2.5.um).output("8.4", "Via spacing to contact < 2.5um")
+via12.separation(poly1, 2.5.um).output("8.5", "Via spacing to Poly1 < 2.5um")
+
+# ---- 9.x METAL2 ----
+metal2.width(3.5.um).output("9.1", "Metal2 width < 3.5um")
+metal2.space(3.5.um).output("9.2", "Metal2 spacing < 3.5um")
+metal2.notch(3.5.um).output("9.2n", "Metal2 notch < 3.5um")
+metal2.enclosing(via12, 1.25.um).output("9.3", "Metal2 enclosure of Via < 1.25um")
+
+# ---- 10.x CAPS pad ----
+pad.width(100.0.um, square).output("10.1", "Pad size not equal to 100um x 100um")

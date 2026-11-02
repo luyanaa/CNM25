@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-properties>
+ <properties>
+  <frame-color>#ffe6bf</frame-color>
+  <fill-color>#ffe6bf</fill-color>
+  <frame-brightness>0</frame-brightness>
+  <fill-brightness>0</fill-brightness>
+  <dither-pattern>C4</dither-pattern>
+  <line-style/>
+  <valid>true</valid>
+  <visible>true</visible>
+  <transparent>false</transparent>
+  <width>1</width>
+  <marked>false</marked>
+  <xfill>false</xfill>
+  <animation>0</animation>
+  <name>NTUB 1/0</name>
+  <source>1/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#00cc66</frame-color>
+  <fill-color>#00cc66</fill-color>
+  <dither-pattern>I9</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>GASAD 2/0</name>
+  <source>2/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#ffe6bf</frame-color>
+  <fill-color>#ffe6bf</fill-color>
+  <dither-pattern>I3</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>POLY0 3/0</name>
+  <source>3/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#ff0000</frame-color>
+  <fill-color>#ff0000</fill-color>
+  <dither-pattern>I5</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>POLY1 4/0</name>
+  <source>4/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#ffe6bf</frame-color>
+  <fill-color>#ffe6bf</fill-color>
+  <dither-pattern>I0</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>NPLUS 5/0</name>
+  <source>5/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#00ffff</frame-color>
+  <fill-color>#00ffff</fill-color>
+  <dither-pattern>I1</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>WINDOW 6/0</name>
+  <source>6/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#0080ff</frame-color>
+  <fill-color>#0080ff</fill-color>
+  <dither-pattern>I3</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>METAL 7/0</name>
+  <source>7/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#ffaaff</frame-color>
+  <fill-color>#ffaaff</fill-color>
+  <dither-pattern>C4</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>CAPS 8/0</name>
+  <source>8/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#cce6ff</frame-color>
+  <fill-color>#cce6ff</fill-color>
+  <dither-pattern>I2</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>METAL2 9/0</name>
+  <source>9/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#ffff00</frame-color>
+  <fill-color>#ffff00</fill-color>
+  <dither-pattern>I0</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>VIA 10/0</name>
+  <source>10/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#ff0000</frame-color>
+  <fill-color>#ff0000</fill-color>
+  <dither-pattern>I0</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>POLY1.pin 20/0</name>
+  <source>20/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#0080ff</frame-color>
+  <fill-color>#0080ff</fill-color>
+  <dither-pattern>I0</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>METAL.pin 21/0</name>
+  <source>21/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#cce6ff</frame-color>
+  <fill-color>#cce6ff</fill-color>
+  <dither-pattern>I0</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>METAL2.pin 22/0</name>
+  <source>22/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#ff0000</frame-color>
+  <fill-color>#ff0000</fill-color>
+  <dither-pattern>I9</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>POLY1.net 23/0</name>
+  <source>23/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#0080ff</frame-color>
+  <fill-color>#0080ff</fill-color>
+  <dither-pattern>I9</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>METAL.net 24/0</name>
+  <source>24/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#cce6ff</frame-color>
+  <fill-color>#cce6ff</fill-color>
+  <dither-pattern>I9</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>METAL2.net 25/0</name>
+  <source>25/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#49d6ba</frame-color>
+  <fill-color>#49d6ba</fill-color>
+  <dither-pattern>C4</dither-pattern>
+  <valid>true</valid>
+  <visible>true</visible>
+  <name>PWELL 26/0</name>
+  <source>26/0@1</source>
+ </properties>
+</layer-properties>

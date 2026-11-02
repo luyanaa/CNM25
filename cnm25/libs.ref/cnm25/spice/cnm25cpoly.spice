@@ -1,0 +1,6 @@
+* CNM25 poly0-poly1 (PiP) capacitor, plate T=poly1 B=poly0
+* cj = 4.227e-4 F/m^2 typical -> C = cj*w*l
+.subckt cnm25cpoly T B
+.param w=30u l=30u
+c1 T B {4.227e-4*w*l}
+.ends

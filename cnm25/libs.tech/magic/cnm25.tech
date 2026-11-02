@@ -1,0 +1,423 @@
+tech
+    format 28
+    CNM25
+end
+
+version
+    version 8.3.685
+    description "CNM25 2-poly 2-metal n-well CMOS (open_pdk, lambda=0.5um)"
+end
+
+# ---------------------------------------------------------------------------
+# Planes and paint types.  poly0 gets its own plane so that poly1-over-poly0
+# overlap capacitance (the PiP cap) can be extracted.
+# ---------------------------------------------------------------------------
+planes
+    well,w
+    active,a
+    poly0,p0
+    metal1,m1
+    metal2,m2
+end
+
+types
+    well	pwell,pw
+    well	nwell,nw
+
+    active	polysilicon,poly,red,p		# POLY1 gate poly
+    active	ndiffusion,ndiff,green
+    active	pdiffusion,pdiff,brown
+    active	nimp,nplus,ni			# NPLUS implant
+
+    active	ntransistor,nfet
+    active	ptransistor,pfet
+
+    active	nsdimplant,nsd
+    active	psdimplant,psd
+    active	polycontact,pcontact,polycut,pc
+    active	ndcontact,ndiffcut,ndc
+    active	pdcontact,pdiffcut,pdc
+    active	nsubcontact,nsubcut,nsc	# n+ tap inside nwell (to VDD)
+    active	psubcontact,psubcut,psc	# p+ tap inside pwell (to VSS)
+
+    poly0	poly0,p0,polycap		# POLY0 cap poly
+    poly0	poly0contact,p0contact,p0c
+
+    metal1	m2contact,m2cut,m2c,via,v
+    metal1	genericcontact,gcontact,gc
+
+    metal1	metal1,m1,blue
+    metal2	metal2,m2,purple
+    metal2	pad
+end
+
+contact
+    pc		poly	metal1
+    p0c		poly0	metal1
+    ndc		ndiff	metal1
+    pdc		pdiff	metal1
+    nsc		nsd	metal1
+    psc		psd	metal1
+    m2c		metal1	metal2
+end
+
+# Painting nwell/pwell converts S/D and fet types (scmos semantics)
+compose
+    compose	nfet	poly	ndiff
+    compose	pfet	poly	pdiff
+    paint	pdc	pwell	ndc
+    paint	pfet	pwell	nfet
+    paint	pdiff	pwell	ndiff
+    paint	ndc	nwell	pdc
+    paint	nfet	nwell	pfet
+    paint	ndiff	nwell	pdiff
+end
+
+connect
+    nwell,nsc,nsd	nwell,nsc,nsd
+    pwell,psc,psd	pwell,psc,psd
+    ndc/m1,pdc/m1,nsc/m1,psc/m1,pc/m1,p0c/m1,m1,m2c/m1,gc \
+			ndc/m1,pdc/m1,nsc/m1,psc/m1,pc/m1,p0c/m1,m1,m2c/m1,gc
+    m2,m2c/m2,pad	m2,m2c/m2,pad
+    poly,pc/a,nfet,pfet	poly,pc/a,nfet,pfet
+    poly0,p0c/p0	poly0,p0c/p0
+    ndiff,ndc/a		nsd,nsc/a
+    pdiff,pdc/a		psd,psc/a
+    nsd,nsc/a		nsd,nsc/a
+    psd,psc/a		psd,psc/a
+    ndiff			ndc
+    pdiff			pdc
+    poly			pc
+    poly0			p0c
+    nimp,nimp		nimp,nimp
+end
+
+styles
+    styletype	mos
+
+    nwell	12
+    pwell	13
+    poly	1
+    poly0	15
+    nimp	3
+    ndiff	2
+    pdiff	4
+
+    nfet	2
+    pfet	4
+
+    pc		22
+    p0c		21
+    ndc		20
+    pdc		32
+    nsc		3
+    psc		5
+
+    metal1	26
+    m2c		31
+    metal2	27
+    pad		37
+    gc		44
+end
+
+# ---------------------------------------------------------------------------
+# DRC — port of cnm25drc.py, lambda = 0.5 um so rule values are doubled.
+# Enclosures are expressed with edge4way (scmos idiom):
+#   edge4way <inner> <surrounding> <dist> <~inner> <~inner> <dist> "why"
+# ---------------------------------------------------------------------------
+drc
+    # 1.x  NTUB (nwell): width 8, spacing/notch 8
+    width	nwell	16	"N-well width < 8um (1.1)"
+    spacing	nwell	nwell	16 touching_illegal "N-well spacing < 8um (1.2)"
+    # 2.x  GASAD (active): width 2, spacing/notch 4
+    width	ndiff,ndc/a,nfet	4	"N-active width < 2um (2.1)"
+    width	pdiff,pdc/a,pfet	4	"P-active width < 2um (2.1)"
+    spacing	ndiff,ndc,nfet	ndiff,ndc,nfet	8 touching_illegal \
+		"N-active spacing < 4um (2.2)"
+    spacing	pdiff,pdc,pfet	pdiff,pdc,pfet	8 touching_illegal \
+		"P-active spacing < 4um (2.2)"
+    # 2.3 nwell enclosure of pdiff = 5um -> 10 lambda
+    # 2.3 (nwell enclosure of pdiff >= 5um) is not expressible in magic DRC
+    # without false-positives on p-taps; the KLayout deck checks it exactly.
+    # 2.4 nwell-to-ndiff spacing = 5um
+    spacing	nwell	ndiff,ndc,nfet	10 touching_illegal \
+		"N-well spacing to N-active < 5um (2.4)"
+    # 3.x  POLY0: width 2.5, spacing/notch 6, spacing to active 6
+    width	poly0,p0c/p0	5	"Poly0 width < 2.5um (3.1)"
+    spacing	poly0	poly0	12 touching_illegal "Poly0 spacing < 6um (3.2)"
+    spacing	poly0	ndiff,ndc,pdiff,pdc,nfet,pfet	12 touching_illegal \
+		"Poly0 spacing to active < 6um (3.3)"
+    # 4.x  POLY1: gate 3, field 2.5, spacing/notch 3, overhang 3
+    width	nfet,pfet	6	"Gate width < 3um (4.1a)"
+    width	poly,pc/a	5	"Poly1 field width < 2.5um (4.1b)"
+    spacing	poly,pc,nfet,pfet	poly,pc,nfet,pfet	6 touching_illegal \
+		"Poly1 spacing < 3um (4.2)"
+    # poly extension beyond gate end (3um)
+    edge4way	nfet,pfet	poly,pc/a	6	poly,pc/a	0	0 \
+		"Poly1 overhang beyond transistor < 3um (4.4)"
+    # 5.x  NPLUS implant rules — only meaningful when nimp is painted
+    # manually (it is not generated on GDS read; see cifinput note).
+    # KLayout cnm25.drc enforces all implant rules exactly.
+    # 6.x  WINDOW (contacts): exact 2.5x2.5, spacing/notch 3,
+    #       active encl 1, poly1 encl 1.25, poly0 encl 4, cont-gate 2
+    width	ndc,pdc,nsc,psc,pc,p0c	5 "Contact width < 2.5um (6.1)"
+    maxwidth	ndc,pdc,nsc,psc,pc,p0c	5 "Contact width > 2.5um (6.1)"
+    spacing	ndc,pdc,nsc,psc,pc,p0c	ndc,pdc,nsc,psc,pc,p0c	6 \
+		touching_illegal "Contact spacing < 3um (6.2)"
+    edge4way	ndc	ndiff	2	space/a	0	0 \
+		"Active enclosure of contact < 1um (6.3)"
+    edge4way	pdc	pdiff	2	space/a	0	0 \
+		"Active enclosure of contact < 1um (6.3)"
+    edge4way	pc	poly	2.5	space/a	0	0 \
+		"Poly1 enclosure of contact < 1.25um (6.4)"
+    edge4way	p0c	poly0	8	space/p0	0	0 \
+		"Poly0 enclosure of contact < 4um (6.9)"
+    spacing	pc	ndiff,ndc,pdiff,pdc,nfet,pfet	5 touching_illegal \
+		"Poly1 contact spacing to active < 2.5um (6.5)"
+    spacing	ndc,pdc	nfet,pfet	4 touching_illegal \
+		"Contact spacing to gate < 2um (6.6)"
+    # 7.x  METAL1: width 2.5, spacing/notch 3, encl contact 1.25
+    width	metal1	5	"Metal1 width < 2.5um (7.1)"
+    spacing	metal1	space/m1	6 touching_ok "Metal1 spacing < 3um (7.2)"
+    edge4way	ndc/m1,pdc/m1,pc/m1,nsc/m1,psc/m1,p0c/m1	metal1	2.5	metal1	0	0 \
+		"Metal1 enclosure of contact < 1.25um (7.3)"
+    # 8.x  VIA: exact 3x3, spacing 3.5, m1 encl 1.25, to cont 2.5, to poly1 2.5
+    width	m2c	6 "Via width < 3um (8.1)"
+    maxwidth	m2c	6 "Via width > 3um (8.1)"
+    spacing	m2c	m2c	7 touching_illegal "Via spacing < 3.5um (8.2)"
+    edge4way	m2c	metal1	2.5	metal1	0	0 \
+		"Metal1 enclosure of via < 1.25um (8.3)"
+    spacing	m2c	ndc,pdc,nsc,psc,pc	5 touching_illegal \
+		"Via spacing to contact < 2.5um (8.4)"
+    spacing	m2c	p0c	5 touching_illegal \
+		"Via spacing to contact < 2.5um (8.4)"
+    spacing	m2c	poly,pc,nfet,pfet	5 touching_illegal \
+		"Via spacing to Poly1 < 2.5um (8.5)"
+    # 9.x  METAL2: width 3.5, spacing/notch 3.5, encl via 1.25
+    width	metal2,pad	7	"Metal2 width < 3.5um (9.1)"
+    spacing	metal2,pad	space/m2	7 touching_ok \
+		"Metal2 spacing < 3.5um (9.2)"
+    edge4way	m2c/m2	metal2,pad	2.5	metal2,pad	0	0 \
+		"Metal2 enclosure of via < 1.25um (9.3)"
+end
+
+# ---------------------------------------------------------------------------
+# CIF/GDS output (calma layer map matches the Glade tech file)
+# ---------------------------------------------------------------------------
+cifoutput
+style CNM25
+    scalefactor 1000 1000
+
+    layer CWN nwell
+	labels nwell
+	calma 1 0
+    layer CAA ndiff,ndc/a,nfet
+	labels ndiff,nfet
+	calma 2 0
+    layer CAA pdiff,pdc/a,pfet
+	labels pdiff,pfet
+	calma 2 0
+    layer CPO poly0,p0c/p0
+	labels poly0
+	calma 3 0
+    layer CP1 poly,pc/a,nfet,pfet
+	labels poly,nfet,pfet
+	calma 4 0
+    layer CNI nimp
+	labels nimp
+	calma 5 0
+    layer CO ndc/a,pdc/a,pc/a,p0c/p0,nsc/a,psc/a
+	calma 6 0
+    layer CM1 m1,m2c/m1,gc
+	labels m1
+	calma 7 0
+    layer CPAD pad
+	labels pad
+	calma 8 0
+    layer CM2 m2,m2c/m2,pad
+	labels m2
+	calma 9 0
+    layer CV1 m2c
+	calma 10 0
+    layer CWP pwell
+	labels pwell
+	calma 26 0
+end
+
+# ---------------------------------------------------------------------------
+# CIF/GDS input — derive magic types from CNM25 GDS layers.
+# WINDOW contacts are classified by the layer they land on:
+#   CWN -> nsc (nwell tap), CWP -> psc, CPO -> p0c, CP1 -> pc,
+#   CAA inside CNI -> ndc, CAA without CNI -> pdc.
+# ---------------------------------------------------------------------------
+cifinput
+style CNM25
+    # scalefactor 100 matches the CIF/label coordinate path; geometry is
+    # read on a rescaled lambda grid so extraction coordinates are correct.
+    # NOTE: magic's built-in checker is advisory only here — use the
+    # KLayout deck (../klayout/drc/cnm25.drc) for authoritative DRC.
+    scalefactor 100
+
+    layer nwell CWN
+	labels CWN
+	labels CM1P
+	labels CM1N
+    layer pwell CWP
+	labels CWP
+	labels CM1P
+	labels CM1N
+
+    # diffusion residues (painted in order; later rules overwrite)
+    layer pdiff CAA
+	and-not CNI
+	labels CAA
+    layer ndiff CAA
+	and CNI
+	labels CAA
+    # well/substrate tap residues: n+ tap inside nwell, p+ tap inside pwell
+    layer nsd CAA
+	and CNI
+	and CWN
+    layer psd CAA
+	and-not CNI
+	and CWP
+    # NB: do NOT paint CNI/nimp — it shares the active plane and would
+    # destroy the diffusion tiles underneath.  Implant polarity is
+    # implicit in the derived ndiff/nsd vs pdiff/psd types.  Implant-only
+    # DRC rules (5.x) are enforced by the KLayout deck.
+    layer poly0 CPO
+	labels CPO
+    layer poly CP1
+	labels CP1
+	labels CP1P
+	labels CP1N
+    layer nfet CP1
+	and CAA
+	and CNI
+    layer pfet CP1
+	and CAA
+	and-not CNI
+    # contacts classified by the residue they land on
+    layer nsc CO
+	and CWN
+	and CNI
+	and CM1
+    layer psc CO
+	and CWP
+	and-not CNI
+	and CM1
+    layer p0c CO
+	and CPO
+	and CM1
+    layer pc CO
+	and CP1
+	and CM1
+    # ndc/pdc land on plain ndiff/pdiff (and-not the tap residues)
+    layer ndc CO
+	and CAA
+	and CNI
+	and-not CWN
+	and CM1
+    layer pdc CO
+	and CAA
+	and-not CNI
+	and-not CWP
+	and CM1
+    layer m1 CM1
+	labels CM1
+	labels CM1P
+	labels CM1N
+    layer pad CPAD
+	labels CPAD
+    layer m2c CV1
+	and CM1
+	and CM2
+    layer m2 CM2
+	labels CM2
+	labels CM2P
+	labels CM2N
+
+    calma CWN 1 *
+    calma CAA 2 *
+    calma CPO 3 *
+    calma CP1 4 *
+    calma CNI 5 *
+    calma CO 6 *
+    calma CM1 7 *
+    calma CPAD 8 *
+    calma CM2 9 *
+    calma CV1 10 *
+    calma CWP 26 *
+    # text (pin/net label) layers from the Glade tech file
+    calma CP1P 20 *
+    calma CM1P 21 *
+    calma CM2P 22 *
+    calma CP1N 23 *
+    calma CM1N 24 *
+    calma CM2N 25 *
+end
+
+# ---------------------------------------------------------------------------
+# Extraction — device models + parasitics from cnm25pex_2d.py
+#   e0*er*1e6 = 34.531e-6 F/m^2 per um dielectric spacing; magic uses aF/um^2.
+# ---------------------------------------------------------------------------
+extract
+    style CNM25
+    cscale 1
+    lambda 100
+    step 100
+    sidehalo 0
+    planeorder well 0
+    planeorder active 1
+    planeorder poly0 2
+    planeorder metal1 3
+    planeorder metal2 4
+
+    # sheet/contact resistances (mOhm/square, typical 2um values)
+    resist metal1 50
+    resist metal2 30
+    resist m2c 1000
+    resist ndc,pdc,nsc,psc,pc,p0c 2000
+    resist poly 20000
+    resist poly0 20000
+    resist ndiff 25000
+    resist pdiff 80000
+
+    # diffusion to substrate/well junction caps (typical values)
+    areacap (ndiff,ndc)/a 30
+    perimc (ndiff,ndc)/a space,pw 40
+    areacap (pdiff,pdc)/a 30
+    perimc (pdiff,pdc)/a space,nw 40
+    areacap (nwell)/w 30
+    perimc (nwell)/w space,pw 40
+
+    # poly1/poly0 over substrate/FOX: c0/1.060 = 32.58 aF/um2
+    areacap (poly,pc,nfet,pfet)/a 32.58
+    perimc (poly,pc,nfet,pfet)/a ~(poly,pc,nfet,pfet)/a 65
+    areacap (poly0,p0c)/p0 32.58
+    perimc (poly0,p0c)/p0 ~(poly0,p0c)/p0 65
+
+    # PiP cap poly1-over-poly0: 4.227e-4 F/m2 -> 422.7 aF/um2
+    overlap poly,pc,nfet,pfet	poly0,p0c	422.7
+    overlap poly0,p0c		poly,pc,nfet,pfet	422.7
+
+    # metal1 parasitics: to poly/diff c0/1.300=26.56, to sub c0/2.360=14.63
+    areacap metal1/a 14.63
+    perimc metal1/a ~(metal1)/a 30
+    overlap metal1/a poly,pc,nfet,pfet 26.56
+    overlap metal1/a poly0,p0c 26.56
+    overlap metal1/a ndiff,ndc,pdiff,pdc 26.56
+    sideoverlap metal1/a ~(metal1)/a poly,pc,nfet,pfet 26.56
+
+    # metal2 parasitics: to m1 26.56, to poly 13.28, to diff/sub 9.44
+    areacap metal2/a 9.44
+    perimc metal2/a ~(metal2)/a 20
+    overlap metal2/a metal1/a 26.56
+    overlap metal2/a poly,pc,nfet,pfet 13.28
+    overlap metal2/a poly0,p0c 13.28
+    overlap metal2/a ndiff,ndc,pdiff,pdc 9.44
+    sideoverlap metal2/a ~(metal2)/a metal1/a 26.56
+
+    device mosfet nfet nfet ndiff,ndc pwell VSS 150 450
+    device mosfet pfet pfet pdiff,pdc nwell VDD 204 450
+end

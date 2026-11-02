@@ -1,0 +1,5 @@
+* Reference schematic netlist for cnm25_test/inverter (LVS golden)
+.subckt inverter IN OUT VDD VSS
+mn1 OUT IN VSS VSS cnm25modn w=9u l=3u
+mp1 OUT IN VDD VDD cnm25modp w=18u l=3u
+.ends

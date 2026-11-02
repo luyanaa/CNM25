@@ -1,0 +1,6 @@
+* CNM25 NMOS subcircuit (extracted-view netlist model)
+* Actual BSIM3 model parameters: see ../models/cnm25mod.lib
+.subckt cnm25modn D G S B
+.param w=4.5u l=3u
+mn D G S B cnm25modn w={w} l={l}
+.ends
