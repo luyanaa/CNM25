@@ -60,6 +60,8 @@ B S/G/D terminal order follows SPICE `M` device convention
 
 - `cnm25_test/inverter.gds`: DRC clean, **LVS MATCH** vs
   `cnm25_test/spice/inverter.spice`.
-- `cnm25_test/cnm25cpoly_30x30.gds`: DRC clean, cap extraction.
+- `cnm25_test/cnm25cpoly_30x30.gds`: DRC clean; extraction gives
+  `cnm25cpoly` T/B = 0.4058 pF (30×30 µm at 4.227e-16 F/µm², plus the
+  poly1 fringe that crosses the poly0 edge).
 - `cnm25_test/drc_test.gds`: flags all 8 intentionally planted
   violations (rules 1.1, 1.2, 2.1, 4.1b, 6.1, 7.2, 8.0, 9.1).

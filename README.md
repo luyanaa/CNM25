@@ -16,6 +16,8 @@ cnm25/
     magic/
       cnm25.tech          magic technology file
       cnm25.tcl           magic startup script
+    ngspice/
+      cnm25mod_ngspice.lib  ngspice port of the BSIM3 model library
     netgen/
       cnm25_setup.tcl     netgen LVS setup
     doc/                  original APDK documentation
@@ -29,6 +31,8 @@ cnm25/
       spice/              golden schematic netlists
 scripts/
   make_test_gds.py        regenerates the .gds fixtures (klayout pya)
+  exp_devices.py          ngspice device characterization experiment
+  exp_inverter.py         ngspice inverter corner experiment
 ```
 
 ## Process summary
@@ -60,6 +64,23 @@ netgen -batch lvs "extracted.spice cell" "schematic.spice cell" \
     libs.tech/netgen/cnm25_setup.tcl comp.out
 ```
 
+### ngspice
+`libs.ref/cnm25/models/cnm25mod.lib` is the original SpiceOpus library and
+does not load in ngspice (its `param:` subcircuit syntax, `LEVEL=53` and
+`rndgauss()` are SpiceOpus-specific). Use the port instead:
+
+```
+.func rndgauss(sig) {agauss(0, sig, 1)}   ; {0} is enough outside ttt_mc
+.lib libs.tech/ngspice/cnm25mod_ngspice.lib ttt   ; sss / fff / ttt_mc
+xn d g s b cnm25modn w=10u l=3u
+```
+
+`scripts/exp_devices.py` and `scripts/exp_inverter.py` exercise that
+library: threshold and drive current across the ttt/sss/fff corners,
+gm/Id, PiP capacitor density against `cj`, Pelgrom Vth mismatch on
+`ttt_mc`, and the voltage transfer and delay of the golden inverter
+(NMOS 9u/3u, PMOS 18u/3u) at 5 V. Both exit non-zero on a failed check.
+
 ## Regenerating fixtures
 ```
 klayout -b -r scripts/make_test_gds.py
@@ -71,6 +92,8 @@ klayout -b -r scripts/make_test_gds.py
   either; they are skipped here as well.
 - The PiP capacitor has no dedicated pin text layer in the source kit;
   the B plate is labeled with a text directly on POLY0 (3/0).
-- SPICE model distribution is unchanged: `libs.ref/cnm25/models/cnm25mod.lib`
-  is the original SpiceOpus file (BSIM3 level 53 with `rndgauss` mismatch
-  parameters — ngspice-compatible syntax may need minor edits).
+- The reference SPICE library is unchanged and remains SpiceOpus-only.
+  `libs.tech/ngspice/cnm25mod_ngspice.lib` is the ngspice port
+  (`param:` removed, BSIM3 level 49, `rndgauss` mapped to `agauss`). The
+  PMOS parameter set realizes a Vth about 0.15 V below |VTH0|; that shift
+  comes from the model card (large negative K3), not from the port.

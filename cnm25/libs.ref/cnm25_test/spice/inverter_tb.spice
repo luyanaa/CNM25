@@ -1,0 +1,61 @@
+* CNM25 inverter — ngspice testbench (golden LVS cell)
+*
+*   Wp/Wn = 18u/9u, L = 3u (minimum drawn gate), VDD = 5 V
+*   The schematic netlist instantiates cnm25modn/cnm25modp as MOSFET
+*   elements (the Glade NLPDeviceFormat prefix), which resolve to the
+*   subcircuits of the same name.
+*
+* Run:  ngspice -n -b inverter_tb.spice
+
+.func rndgauss(sig) {0}
+.lib ../../../libs.tech/ngspice/cnm25mod_ngspice.lib ttt
+.include inverter.spice
+
+.param vdd = 5
+x1 in out vdd 0 inverter
+vdd vdd 0 {vdd}
+vin in  0 0
+
+.control
+set wr_singlescale
+set filetype=ascii
+
+* --- DC transfer, trip point and static levels ---
+dc vin 0 5 0.01
+wrdata inv_vtc.dat v(in) v(out)
+let trip = 0
+let i = 0
+dowhile i < length(v(in))-1
+  if (v(out)[i] >= v(in)[i]) & (v(out)[i+1] < v(in)[i+1])
+    let trip = v(in)[i]
+  end
+  let i = i + 1
+end
+let vol = v(out)[length(v(out))-1]
+let voh = v(out)[0]
+echo VTC voh=$&voh vol=$&vol trip=$&trip
+
+* --- gain at the trip point ---
+let dvin = 1m
+alter vin = trip-dvin
+op
+let vlo = v(out)
+alter vin = trip+dvin
+op
+let vhi = v(out)
+let gain = (vhi-vlo)/(2*dvin)
+echo GAIN gain=$&gain
+
+* --- propagation delay, 1 pF load ---
+alter vin = 0
+cl out 0 1p
+tran 0.2n 400n
+let vin2 = vin
+alter @vin2[pulse] = [ 0 5 10n 1n 1n 200n 400n ]
+tran 0.2n 400n
+meas tran tphl trig v(in)  val=2.5 rise=1 targ v(out) val=2.5 fall=1
+meas tran tplh trig v(in)  val=2.5 fall=1 targ v(out) val=2.5 rise=1
+echo DELAY tphl=$&tphl tplh=$&tplh
+wrdata inv_tran.dat v(in) v(out)
+.endc
+.end

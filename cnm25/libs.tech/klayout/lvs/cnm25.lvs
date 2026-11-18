@@ -82,11 +82,17 @@ extract_devices(mos4("cnm25modn"), {
   "SD" => ndiff, "G" => ngate, "tG" => poly1, "W" => pwell })
 extract_devices(mos4("cnm25modp"), {
   "SD" => pdiff, "G" => pgate, "tG" => poly1, "W" => nwell })
-# PiP capacitor: T = poly1 plate (over cpoly), B = poly0 plate.
-# cj = 4.227e-4 F/m^2 = 4.227e-16 F/um^2 (typical, 'common' section)
+# PiP capacitor: T = poly1 plate, B = poly0 plate.
+# The extractor measures the overlap of P1 and P2 and emits each terminal on
+# its input layer, so:
+#   P1 must be the overlap (P2 = poly0 - overlap is empty there, and nothing
+#      is extracted),
+#   the T terminal must be written onto the whole poly1 plate, because the
+#      overlap stops at the poly0 edge while the contact sits on the poly1
+#      stub outside it.
+# cj = 4.227e-4 F/m^2 = 4.227e-16 F/um^2 (typical corner)
 extract_devices(capacitor("cnm25cpoly", 4.227e-16), {
-  "P1" => cpoly, "P2" => poly0 - cpoly,
-  "tA" => poly1, "tB" => poly0 })
+  "P1" => cpoly, "P2" => poly0, "tA" => poly1, "tB" => poly0 })
 
 # pin/net naming priority: pin texts first
 netlist.simplify

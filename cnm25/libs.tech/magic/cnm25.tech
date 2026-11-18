@@ -373,50 +373,55 @@ extract
     planeorder metal1 3
     planeorder metal2 4
 
-    # sheet/contact resistances (mOhm/square, typical 2um values)
-    resist metal1 50
+    # Sheet resistance, milliohms per square (typical 2um values; the
+    # CNM25 manual, section 3.10, extracts capacitance only).  A contact
+    # cut is not a sheet resistor: extresist counts cuts from the contact
+    # lines below, in milliohms per cut.  The size argument is ignored and
+    # the cut count comes from the cifoutput rules.
+    resist metal1,m2c/m1 50
     resist metal2 30
-    resist m2c 1000
-    resist ndc,pdc,nsc,psc,pc,p0c 2000
-    resist poly 20000
-    resist poly0 20000
-    resist ndiff 25000
-    resist pdiff 80000
+    resist poly,pc 20000
+    resist poly0,p0c 20000
+    resist ndiff,ndc,nsc 25000
+    resist pdiff,pdc,psc 80000
+    contact ndc,pdc,nsc,psc,pc,p0c 5 2000
+    contact m2c 6 1000
 
-    # diffusion to substrate/well junction caps (typical values)
-    areacap (ndiff,ndc)/a 30
-    perimc (ndiff,ndc)/a space,pw 40
-    areacap (pdiff,pdc)/a 30
-    perimc (pdiff,pdc)/a space,nw 40
-    areacap (nwell)/w 30
-    perimc (nwell)/w space,pw 40
+    # Diffusion and well junction caps are NOT extracted here.  The BSIM
+    # models already carry CJ/CJSW, and magic also puts AD/PD/AS/PS on
+    # every MOSFET, so an areacap on ndiff/pdiff/nwell would count the
+    # junction a second time.  The manual's 2D deck does the same: its
+    # parasitics are interconnect overlap only.
 
-    # poly1/poly0 over substrate/FOX: c0/1.060 = 32.58 aF/um2
+    # Overlap capacitance, aF/um2, from cnm25pex_2d.py (manual Fig. 44):
+    #   c0 = e0*er*1e6 per um of oxide, er=3.9.
+    # The deck passes 0.0 as the fringe term and magic shields a lower
+    # plate by whatever overlaps it, so there is no perimeter or sidewall
+    # capacitance.  The plane suffix is the layer's own plane: metal1/a
+    # looks for metal on the active plane and extracts nothing.
+    #
+    #   poly1, poly0 to substrate   c0/1.060 = 32.58
+    #   poly1 over poly0 (PiP)      4.227e-4 F/m2 = 422.7
+    #   metal1 to poly/diff         c0/1.300 = 26.56
+    #   metal1 to substrate         c0/2.360 = 14.63
+    #   metal2 to metal1            c0/1.300 = 26.56
+    #   metal2 to poly              c0/2.600 = 13.28
+    #   metal2 to diff/substrate    c0/3.660 = 9.44
     areacap (poly,pc,nfet,pfet)/a 32.58
-    perimc (poly,pc,nfet,pfet)/a ~(poly,pc,nfet,pfet)/a 65
     areacap (poly0,p0c)/p0 32.58
-    perimc (poly0,p0c)/p0 ~(poly0,p0c)/p0 65
+    overlap poly,pc,nfet,pfet poly0,p0c 422.7
+    overlap poly0,p0c poly,pc,nfet,pfet 422.7
 
-    # PiP cap poly1-over-poly0: 4.227e-4 F/m2 -> 422.7 aF/um2
-    overlap poly,pc,nfet,pfet	poly0,p0c	422.7
-    overlap poly0,p0c		poly,pc,nfet,pfet	422.7
+    areacap metal1/m1 14.63
+    overlap metal1/m1 poly,pc,nfet,pfet 26.56
+    overlap metal1/m1 poly0,p0c 26.56
+    overlap metal1/m1 ndiff,ndc,pdiff,pdc 26.56
 
-    # metal1 parasitics: to poly/diff c0/1.300=26.56, to sub c0/2.360=14.63
-    areacap metal1/a 14.63
-    perimc metal1/a ~(metal1)/a 30
-    overlap metal1/a poly,pc,nfet,pfet 26.56
-    overlap metal1/a poly0,p0c 26.56
-    overlap metal1/a ndiff,ndc,pdiff,pdc 26.56
-    sideoverlap metal1/a ~(metal1)/a poly,pc,nfet,pfet 26.56
-
-    # metal2 parasitics: to m1 26.56, to poly 13.28, to diff/sub 9.44
-    areacap metal2/a 9.44
-    perimc metal2/a ~(metal2)/a 20
-    overlap metal2/a metal1/a 26.56
-    overlap metal2/a poly,pc,nfet,pfet 13.28
-    overlap metal2/a poly0,p0c 13.28
-    overlap metal2/a ndiff,ndc,pdiff,pdc 9.44
-    sideoverlap metal2/a ~(metal2)/a metal1/a 26.56
+    areacap metal2/m2 9.44
+    overlap metal2/m2 metal1/m1 26.56
+    overlap metal2/m2 poly,pc,nfet,pfet 13.28
+    overlap metal2/m2 poly0,p0c 13.28
+    overlap metal2/m2 ndiff,ndc,pdiff,pdc 9.44
 
     device mosfet nfet nfet ndiff,ndc pwell VSS 150 450
     device mosfet pfet pfet pdiff,pdc nwell VDD 204 450
